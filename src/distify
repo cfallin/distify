@@ -1,0 +1,56 @@
+#!/bin/bash
+
+usage() {
+    echo Usage: distify "<executable>" "<distribution-directory/>"
+    exit 1
+}
+
+exe=$1
+dist=$2
+
+realexe=`readlink -f $exe`
+target=$dist/`basename $exe`
+
+if [ ! -f $realexe ]; then
+    usage
+fi
+if [ "x$dist" == "x" ]; then
+    usage
+fi
+
+mkdir -p $dist
+
+if [ -f "$target" ]; then
+    exit 0
+fi
+
+whitelist_search="`dirname $0` `dirname $0`/../share/distify"
+whitelist=""
+for w in $whitelist_search; do
+    try=$w/distify-whitelist.txt
+    if [ -f $try ]; then
+        whitelist=$try
+        break
+    fi
+done
+
+if [ "x$whitelist" == "x" ]; then
+    echo Could not find distify-whitelist.txt in binary directory or
+    echo in ../share/distify.
+    exit 1
+fi
+
+cp $realexe $target
+
+libs=`ldd $exe | awk '{print $3}'`
+for lib in $libs; do
+    if [ ! -f $lib ]; then
+        continue
+    fi
+    echo $lib | grep -q -f $whitelist 
+    if [ $? -ne 0 ]; then
+        $0 $lib $dist/
+    fi
+done
+
+patchelf --force-rpath --set-rpath "\$ORIGIN" $dist/`basename $exe`

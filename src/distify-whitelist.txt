@@ -1,0 +1,11 @@
+linux-vdso.so
+libdl.so
+librt.so
+libc.so
+libm.so
+libnss
+libpthread.so
+libgcc_s.so
+libX
+libGL
+libnvidia
